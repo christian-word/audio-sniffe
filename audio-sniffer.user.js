@@ -1,8 +1,8 @@
-﻿// ==UserScript==
-// @name         Audio Sniffer (Play detector)
+// ==UserScript==
+// @name         Audio Sniffer (кнопка "Скачать")
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Показывает ссылку на mp3 при нажатии Play на сайтах с христианскими песнями
+// @version      1.1
+// @description  Добавляет кнопку "Скачать" рядом с плеером при нажатии Play
 // @match        *://fonki.pro/*
 // @match        *://kg-music.club/*
 // @match        *://holychords.pro/*
@@ -12,27 +12,43 @@
 (function() {
     'use strict';
 
-    function showLink(url) {
+    function addDownloadButton(audio, url) {
         if (!url) return;
-        // Всплывающее окно
-        alert("Ссылка на аудио:\n" + url);
-        // Лог в консоль (на всякий случай)
-        console.log("Audio link:", url);
+        if (audio._downloadButtonAdded) return;
+
+        const btn = document.createElement("a");
+        btn.textContent = "⬇ Скачать";
+        btn.href = url;
+        btn.target = "_blank";
+        btn.style.display = "inline-block";
+        btn.style.marginLeft = "10px";
+        btn.style.padding = "4px 8px";
+        btn.style.background = "#2a623d";
+        btn.style.color = "#fff";
+        btn.style.borderRadius = "4px";
+        btn.style.fontSize = "13px";
+        btn.style.textDecoration = "none";
+        btn.style.fontWeight = "bold";
+
+        audio.insertAdjacentElement("afterend", btn);
+        audio._downloadButtonAdded = true;
     }
 
-    function attach(a) {
-        if (!a._snifferAttached) {
-            a.addEventListener("play", () => {
-                if (a.currentSrc) showLink(a.currentSrc);
-            });
-            a._snifferAttached = true;
-        }
+    function attach(audio) {
+        if (audio._snifferAttached) return;
+        audio.addEventListener("play", () => {
+            if (audio.currentSrc) {
+                addDownloadButton(audio, audio.currentSrc);
+                console.log("Audio link:", audio.currentSrc);
+            }
+        });
+        audio._snifferAttached = true;
     }
 
-    // уже существующие <audio>
+    // существующие <audio>
     document.querySelectorAll("audio").forEach(attach);
 
-    // отслеживаем новые <audio>
+    // новые <audio>
     new MutationObserver(muts => {
         muts.forEach(m => m.addedNodes.forEach(node => {
             if (node.tagName === "AUDIO") attach(node);
