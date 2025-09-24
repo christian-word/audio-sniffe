@@ -1,0 +1,107 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Установка закладки-скрипта</title>
+<style>
+  body { font-family: sans-serif; padding: 20px; line-height: 1.4; }
+  .hidden { display: none; }
+  textarea { width: 100%; height: 120px; font-family: monospace; }
+  button { margin-top: 10px; padding: 8px 12px; cursor: pointer; }
+  .browser { font-weight: bold; color: darkblue; }
+</style>
+</head>
+<body>
+  <h1>Установка Bookmarklet (закладка-скрипт) для баузера</h1>
+  <h2>Для скачивания Аудио/Видео для ПК и Мобильных</h2>
+  <p id="detected"></p>
+
+  <!-- ПК -->
+  <div id="pc" class="hidden">
+    <p>Перетащи эту кнопку в панель закладок:</p>
+    <a id="pcBtn" href="#">📌 Скачать медиа</a>
+  </div>
+
+  <!-- Мобильные -->
+  <div id="mobile" class="hidden">
+    <p>Для твоего браузера сделай так:</p>
+    <ol>
+      <li>Добавь эту страницу в закладки.</li>
+      <li>Открой редактирование закладки.</li>
+      <li>Вместо ссылки вставь этот код:</li>
+    </ol>
+    <textarea id="code"></textarea>
+    <br>
+    <button onclick="copyCode()">📋 Скопировать код</button>
+  </div>
+
+  <script>
+    // сам скрипт для закладки
+    const bookmarklet = `javascript:(()=>{
+      if(!window._loadedAudio) window._loadedAudio=new Set();
+      const all=[...performance.getEntriesByType("resource")]
+        .filter(r=>/\\.(mp3|m4a|ogg|wav)(\\?.*)?$/i.test(r.name))
+        .map(r=>r.name);
+      const newOnly=all.filter(u=>!window._loadedAudio.has(u));
+      if(!newOnly.length){
+        alert("Новых треков нет – всё уже скачано.");
+        return;
+      }
+      let delay=0;
+      newOnly.forEach(u=>{
+        window._loadedAudio.add(u);
+        setTimeout(()=>{
+          const a=document.createElement("a");
+          a.href=u;
+          a.download=u.split("/").pop().split("?")[0];
+          a.click();
+        },delay);
+        delay+=300;
+      })
+    })();`;
+
+    // Определяем браузер
+    let ua = navigator.userAgent;
+    let browser = "Другой";
+    if (/Chrome/i.test(ua) && !/Edg/i.test(ua)) {
+      browser = "Chrome";
+    } else if (/Firefox/i.test(ua)) {
+      browser = "Firefox";
+    } else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) {
+      browser = "Safari";
+    } else if (/Edg/i.test(ua)) {
+      browser = "Edge";
+    }
+
+    // Определяем устройство
+    let isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+
+    // Подсказка пользователю
+    document.getElementById("detected").innerHTML =
+      "📌 Определено устройство: <span class='browser'>" +
+      (isMobile ? "Мобильное" : "ПК") +
+      "</span>, браузер: <span class='browser'>" + browser + "</span>";
+
+    // Заполняем кнопки и текст
+    document.getElementById("pcBtn").setAttribute("href", bookmarklet);
+    document.getElementById("code").textContent = bookmarklet;
+
+    // Показываем соответствующий блок
+    if (isMobile) {
+      document.getElementById("mobile").classList.remove("hidden");
+    } else {
+      document.getElementById("pc").classList.remove("hidden");
+    }
+
+    // Копирование кода в буфер
+    function copyCode() {
+      const textarea = document.getElementById("code");
+      textarea.select();
+      textarea.setSelectionRange(0, 99999); // для мобилы
+      document.execCommand("copy");
+      alert("Код скопирован!");
+    }
+    window.copyCode = copyCode;
+  </script>
+</body>
+</html>
